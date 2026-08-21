@@ -55,10 +55,26 @@ export function parseUsbPacket(input, receivedAt = performance.now()) {
   const rssiMinRaw = view.getInt8(9);
   const rssiAverageRaw = view.getInt8(10);
   const rssiCount = view.getUint8(11);
+  const type = view.getUint8(0);
+
+  // The generic usb_pkt_rx contract says rssi_count == 0 means the RSSI
+  // statistics are invalid. Current Ubertooth BLE le_phy firmware is a
+  // implementation exception in practice: usb_enqueue_le() fills rssi_min,
+  // rssi_max and rssi_avg from per-byte samples, then sets rssi_count to 0.
+  // Upstream's own BLE host callback consumes those RSSI fields directly.
+  // Preserve the strict count guard for other packet types, but accept the
+  // populated BLE LE_PACKET metadata so device signal strength is not lost.
+  const bleLePhyRssiCompat = type === PacketType.LE_PACKET && rssiCount === 0;
+  const rssiMetadataAvailable = rssiCount > 0 || bleLePhyRssiCompat;
+  const rssiSource = rssiCount > 0
+    ? 'USB RSSI statistics'
+    : bleLePhyRssiCompat
+      ? 'BLE le_phy metadata (sample count unavailable)'
+      : 'Unavailable';
 
   return {
     receivedAt,
-    type: view.getUint8(0),
+    type,
     typeName: PacketTypeName[view.getUint8(0)] ?? `TYPE ${view.getUint8(0)}`,
     status: view.getUint8(1),
     statusFlags: statusNames(view.getUint8(1)),
@@ -69,10 +85,13 @@ export function parseUsbPacket(input, receivedAt = performance.now()) {
     rssiMaxRaw,
     rssiMinRaw,
     rssiAverageRaw,
-    rssiMax: rssiCount ? cc2400RssiToDbm(rssiMaxRaw) : null,
-    rssiMin: rssiCount ? cc2400RssiToDbm(rssiMinRaw) : null,
-    rssiAverage: rssiCount ? cc2400RssiToDbm(rssiAverageRaw) : null,
+    rssiMax: rssiMetadataAvailable ? cc2400RssiToDbm(rssiMaxRaw) : null,
+    rssiMin: rssiMetadataAvailable ? cc2400RssiToDbm(rssiMinRaw) : null,
+    rssiAverage: rssiMetadataAvailable ? cc2400RssiToDbm(rssiAverageRaw) : null,
     rssiCount,
+    rssiMetadataAvailable,
+    rssiSource,
+    rssiCountValid: rssiCount > 0,
     reserved: raw.slice(12, 14),
     payload: raw.slice(14, 64),
     raw

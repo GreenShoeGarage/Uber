@@ -52,6 +52,32 @@ test('64-byte receive framing parses fixed metadata and preserves raw evidence',
   assert.equal(p.raw[0], PacketType.LE_PACKET, 'parser must preserve a copy of evidence');
 });
 
+
+
+test('current BLE le_phy RSSI metadata remains usable when firmware reports rssi_count zero', () => {
+  const b = basePacket(PacketType.LE_PACKET, 2402);
+  b[11] = 0; // current le_phy usb_enqueue_le() behavior
+  const p = parseUsbPacket(b, 99);
+  assert.equal(p.rssiCount, 0);
+  assert.equal(p.rssiCountValid, false);
+  assert.equal(p.rssiMetadataAvailable, true);
+  assert.equal(p.rssiSource, 'BLE le_phy metadata (sample count unavailable)');
+  assert.equal(Number.isFinite(p.rssiMax), true);
+  assert.equal(Number.isFinite(p.rssiMin), true);
+  assert.equal(Number.isFinite(p.rssiAverage), true);
+});
+
+test('non-BLE packet types still honor rssi_count zero as unavailable', () => {
+  const b = basePacket(PacketType.BR_PACKET, 2402);
+  b[11] = 0;
+  const p = parseUsbPacket(b, 100);
+  assert.equal(p.rssiMetadataAvailable, false);
+  assert.equal(p.rssiSource, 'Unavailable');
+  assert.equal(p.rssiMax, null);
+  assert.equal(p.rssiMin, null);
+  assert.equal(p.rssiAverage, null);
+});
+
 test('spectrum packet decodes 16 big-endian frequency/RSSI triples', () => {
   const b = basePacket(PacketType.SPECAN, 2402);
   let o = 14;

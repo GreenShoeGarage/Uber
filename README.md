@@ -1,16 +1,24 @@
 # UberToothGUI
 
-**UberToothGUI v1.8.2** is a local-first browser workbench for the Great Scott Gadgets **Ubertooth One**. It turns the device's vendor-specific USB interface into a visual radio-frequency (RF), Bluetooth Low Energy (BLE), and Bluetooth Classic Basic Rate observation instrument without routing captures through a cloud service.
+**UberToothGUI v1.8.3** is a local-first browser workbench for the Great Scott Gadgets **Ubertooth One**. It turns the device's vendor-specific USB interface into a visual radio-frequency (RF), Bluetooth Low Energy (BLE), and Bluetooth Classic Basic Rate observation instrument without routing captures through a cloud service.
 
 Core workflow:
 
 **CONNECT → OBSERVE → TUNE → CAPTURE → INSPECT → ANALYZE → EXPORT**
 
-The v1.8.2 release is a focused reliability patch on top of the v1.8.1 user-interface and user-experience cleanup. It keeps the validated acquisition, decoder, replay, and export paths intact while fixing BLE live-panel navigation controls that could miss clicks during rapid RSSI/activity refreshes.
+The v1.8.3 release is a focused BLE signal-strength compatibility patch on top of the v1.8.2 live-panel reliability fix. It keeps the validated acquisition, decoder, replay, and export paths intact while correctly consuming RSSI metadata emitted by the current upstream BLE `le_phy` firmware path.
 
 > **Status:** Batch 1 hardware validation has been completed successfully by the operator on a physical Ubertooth One. Batches 2–15 are deliberately layered on that proven WebUSB foundation rather than replacing it. BLE continues to use the upstream `POLL` path, Spectrum and Bluetooth Classic use bulk IN, and each later batch includes a focused physical/behavioral acceptance checklist.
 
 ## Highlights
+
+## v1.8.3 BLE RSSI compatibility fix
+
+- Fixes BLE device and packet signal strengths incorrectly rendering as **— dBm** on current Ubertooth firmware.
+- The generic `usb_pkt_rx` structure describes `rssi_count == 0` as invalid RSSI statistics, but the current BLE `le_phy` path is an implementation exception: it samples RSSI while receiving each byte, fills `rssi_min`, `rssi_max`, and `rssi_avg`, and then emits `rssi_count = 0`.
+- The upstream host BLE callback likewise consumes these RSSI fields directly. UberToothGUI now mirrors that behavior only for `LE_PACKET` records while preserving the strict `rssi_count` guard for other packet types.
+- Packet Inspector exposes the RSSI source and whether an actual sample count was reported, so the compatibility rule remains traceable to the retained raw USB evidence.
+- Capture JSON now records `rssiSource`, `rssiMetadataAvailable`, and `rssiCountValid` alongside the original raw RSSI bytes and count.
 
 ## v1.8.2 BLE live-panel navigation fix
 

@@ -75,6 +75,9 @@ function serializablePacket(p) {
     rssiMin: p.rssiMin,
     rssiAverage: p.rssiAverage,
     rssiCount: p.rssiCount,
+    rssiMetadataAvailable: Boolean(p.rssiMetadataAvailable),
+    rssiCountValid: Boolean(p.rssiCountValid),
+    rssiSource: p.rssiSource ?? 'Unavailable',
     ble: serializableBle(p.ble),
     classic: serializableClassic(p.classic),
     annotation: {
