@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Local-first WebUSB workbench for Great Scott Gadgets Ubertooth One.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>UberToothGUI</title>
+</head>
+<body>
+  <div id="app-shell" class="app-shell">
+    <header class="topbar">
+      <div class="brand-block"><div class="brand-mark">UT</div><div><strong>UBERTOOTH</strong><span>BROWSER WORKBENCH</span></div></div>
+      <div id="connection-state" class="connection-state disconnected" role="status" aria-live="polite">DISCONNECTED</div>
+      <div id="simulation-badge" class="simulation-badge" hidden>SIMULATION</div>
+      <div id="workspace-label" class="workspace-label">CONNECT</div>
+      <div class="mode-toggle" aria-label="Interface mode"><button type="button" id="header-mode-easy" class="active" data-action="set-easy" aria-pressed="true">EASY</button><button type="button" id="header-mode-advanced" data-action="set-advanced" aria-pressed="false">ADVANCED</button></div>
+      <div id="app-version" class="version">—</div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="sidebar-toolbar"><button type="button" id="nav-collapse-button" class="nav-collapse-button" data-action="toggle-nav" aria-label="Collapse navigation"><span class="collapse-glyph">‹</span><span class="collapse-label">COLLAPSE</span></button></div>
+      <nav id="side-nav" aria-label="Primary"></nav>
+      <div class="sidebar-foot"><span>LOCAL RF</span><span>NO TELEMETRY</span></div>
+    </aside>
+
+    <main id="main-view" class="main-view" tabindex="-1"></main>
+
+    <footer class="statusbar">
+      <span id="status-channel">CH —</span>
+      <span id="status-range">2402–2480 MHz</span>
+      <span id="status-rssi">— dBm</span>
+      <span id="status-rate">0.0 pkt/s</span>
+      <span id="status-rec">IDLE</span>
+      <span id="autosave-state" class="autosave saved">● SAVED</span>
+    </footer>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="src/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('./sw.js').catch(() => {});
+  </script>
+</body>
+</html>
