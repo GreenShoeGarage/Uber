@@ -193,14 +193,28 @@ function bleView(s) {
 }
 
 function bleDevicePreview(s) {
-  return `<section class="panel" data-live="ble-device-preview">${bleDevicePreviewContent(s)}</section>`;
+  const rows = bleDevicePreviewRows(s);
+  return `<section class="panel ble-device-panel">
+    <div class="panel-title"><span>OBSERVED DEVICES</span><span data-live="ble-device-count">${s.devices.length} TOTAL · STRONGEST FIRST</span></div>
+    <div class="ble-device-preview" data-live="ble-device-list">${bleDevicePreviewRowsHtml(rows)}</div>
+    <div class="panel-footer-actions"><button class="btn small" data-view="devices" data-live="ble-open-devices" ${!rows.length?'disabled':''}>OPEN DEVICE INVENTORY</button><button class="btn small quiet" data-view="packets" data-live="ble-open-packets" ${!s.recorder.packets.toArray().some(p=>p.ble)?'disabled':''}>OPEN PACKET INSPECTOR</button></div>
+  </section>`;
 }
 
-export function bleDevicePreviewContent(s) {
+export function bleDevicePreviewRows(s) {
   const now = observationNow(s);
-  const rows = s.devices.slice().sort((a,b)=>(Number(b.rssi) || -999)-(Number(a.rssi) || -999)).slice(0,8);
-  if (!rows.length) return `<div class="empty-state compact"><strong>NO ADVERTISERS YET</strong><span>Start BLE Scan. Observed devices will appear here first; raw packet evidence remains available below.</span></div>`;
-  return `<div class="panel-title"><span>OBSERVED DEVICES</span><span>${s.devices.length} TOTAL · STRONGEST FIRST</span></div><div class="ble-device-preview">${rows.map(d=>`<button data-device-address="${esc(d.address)}"><div><strong>${esc(d.localName||d.address)}</strong><span>${esc(d.localName?d.address:(d.addressType??'Observed address'))}</span></div><div class="device-signal"><b>${d.rssi??'—'} dBm</b><span>${deviceActivityState(d,now)}</span></div></button>`).join('')}</div><div class="panel-footer-actions"><button class="btn small" data-view="devices">OPEN DEVICE INVENTORY</button><button class="btn small quiet" data-view="packets">OPEN PACKET INSPECTOR</button></div>`;
+  return s.devices.slice().sort((a,b)=>(Number(b.rssi) || -999)-(Number(a.rssi) || -999)).slice(0,8).map(d=>({
+    address:d.address,
+    name:d.localName||d.address,
+    subtitle:d.localName?d.address:(d.addressType??'Observed address'),
+    rssi:d.rssi,
+    state:deviceActivityState(d,now)
+  }));
+}
+
+function bleDevicePreviewRowsHtml(rows) {
+  if (!rows.length) return `<div class="empty-state compact ble-device-empty"><strong>NO ADVERTISERS YET</strong><span>Start BLE Scan. Observed devices will appear here first; raw packet evidence remains available below.</span></div>`;
+  return rows.map(d=>`<button data-device-address="${esc(d.address)}"><div><strong data-role="device-name">${esc(d.name)}</strong><span data-role="device-subtitle">${esc(d.subtitle)}</span></div><div class="device-signal"><b data-role="device-rssi">${d.rssi??'—'} dBm</b><span data-role="device-state">${esc(d.state)}</span></div></button>`).join('');
 }
 
 function bleAdvancedPanel(s, connected, activeMode) {

@@ -1,16 +1,23 @@
 # UberToothGUI
 
-**UberToothGUI v1.8.1** is a local-first browser workbench for the Great Scott Gadgets **Ubertooth One**. It turns the device's vendor-specific USB interface into a visual radio-frequency (RF), Bluetooth Low Energy (BLE), and Bluetooth Classic Basic Rate observation instrument without routing captures through a cloud service.
+**UberToothGUI v1.8.2** is a local-first browser workbench for the Great Scott Gadgets **Ubertooth One**. It turns the device's vendor-specific USB interface into a visual radio-frequency (RF), Bluetooth Low Energy (BLE), and Bluetooth Classic Basic Rate observation instrument without routing captures through a cloud service.
 
 Core workflow:
 
 **CONNECT → OBSERVE → TUNE → CAPTURE → INSPECT → ANALYZE → EXPORT**
 
-The v1.8.1 release is a focused user-interface and user-experience cleanup on top of the v1.8.0 Bluetooth Classic/WebAssembly foundation. It keeps the validated acquisition, decoder, replay, and export paths intact while simplifying navigation, emphasizing primary actions, and moving expert controls behind progressive disclosure.
+The v1.8.2 release is a focused reliability patch on top of the v1.8.1 user-interface and user-experience cleanup. It keeps the validated acquisition, decoder, replay, and export paths intact while fixing BLE live-panel navigation controls that could miss clicks during rapid RSSI/activity refreshes.
 
 > **Status:** Batch 1 hardware validation has been completed successfully by the operator on a physical Ubertooth One. Batches 2–15 are deliberately layered on that proven WebUSB foundation rather than replacing it. BLE continues to use the upstream `POLL` path, Spectrum and Bluetooth Classic use bulk IN, and each later batch includes a focused physical/behavioral acceptance checklist.
 
 ## Highlights
+
+## v1.8.2 BLE live-panel navigation fix
+
+- The BLE **Observed Devices** footer and navigation buttons now remain mounted while live RSSI/activity values refresh.
+- Device preview rows are patched in place by observed address instead of replacing the complete panel every 200 ms.
+- This fixes intermittent missed clicks on **OPEN DEVICE INVENTORY** and reduces the same risk on preview-device selections.
+- The underlying BLE acquisition, packet parser, device inventory, and navigation model are unchanged.
 
 ## v1.8.1 UI/UX cleanup
 
@@ -82,11 +89,11 @@ The v1.8.1 release is a focused user-interface and user-experience cleanup on to
 - Classic has its own piconet-observation model: observed Lower Address Part (LAP), channel/RSSI history, access-code error count, repeated Upper Address Part (UAP)/header candidates, packet-type candidates, and exact raw-byte provenance.
 - A worker-isolated WebAssembly kernel derived from GPL-2.0 libbtbb algorithms performs the narrow access-code/header candidate operations needed by this release; a JavaScript fallback uses the same browser-facing contract.
 - Unknown-LAP survey is deliberately exact-match only in this release. A supplied known LAP can be matched with a user-selected 0–4 access-code Hamming-error threshold.
-- Full 27-bit Bluetooth master-clock recovery and hop-following are **not** claimed by v1.8.1; clock-six/UAP/header results are explicitly candidate evidence.
+- Full 27-bit Bluetooth master-clock recovery and hop-following are **not** claimed by v1.8.2; clock-six/UAP/header results are explicitly candidate evidence.
 
 ## Safety scope
 
-UberToothGUI v1.8.1 is an **observation and analysis instrument**. The normal interface intentionally does **not** expose continuous jamming, interference, arbitrary packet injection, transmit tests, firmware flashing, or other disruptive/device-risk commands. The command enumeration retains upstream identifiers for protocol traceability, but only the receive/diagnostic/control subset used by this release is invokable by the application.
+UberToothGUI v1.8.2 is an **observation and analysis instrument**. The normal interface intentionally does **not** expose continuous jamming, interference, arbitrary packet injection, transmit tests, firmware flashing, or other disruptive/device-risk commands. The command enumeration retains upstream identifiers for protocol traceability, but only the receive/diagnostic/control subset used by this release is invokable by the application.
 
 Use radio equipment only on systems and spectrum you are authorized to observe and in accordance with applicable law.
 
@@ -415,7 +422,7 @@ When a stream is explicitly stopped, UberToothGUI stores a JSON-compatible captu
 
 ## Export formats
 
-Implemented through v1.8.1:
+Implemented through v1.8.2:
 
 - **JSON** — canonical capture document with parsed metadata, events, annotations, and raw packet hex
 - **Packet CSV** — packet table including BLE and Bluetooth Classic summary fields
@@ -429,7 +436,7 @@ Implemented through v1.8.1:
 - **Classic CSV** — one row per parsed Basic Rate observation with LAP, access-code errors, bit offset, candidate UAP/header/type, channel, RSSI, and decoder engine
 - **Evidence ZIP** — local STORE-format ZIP containing the canonical evidence set and a manifest recording BLE PCAP eligibility/exclusions
 
-BLE PCAP/PCAPNG deliberately exclude malformed, truncated, unknown-channel, spectrum, Bluetooth Classic, and other non-BLE USB records. Classic observations remain in JSON, packet CSV, `classic.csv`, and raw USB64 evidence. Standards-correct Classic PCAP is not implemented in v1.8.1; the application does not invent a link type or fabricate decoded bytes.
+BLE PCAP/PCAPNG deliberately exclude malformed, truncated, unknown-channel, spectrum, Bluetooth Classic, and other non-BLE USB records. Classic observations remain in JSON, packet CSV, `classic.csv`, and raw USB64 evidence. Standards-correct Classic PCAP is not implemented in v1.8.2; the application does not invent a link type or fabricate decoded bytes.
 
 ## Simulation Mode
 
@@ -587,7 +594,7 @@ npm test
 
 The automated suite currently contains **66 passing tests**. In addition to the Batch 1–13 protocol, hardening, spectrum, BLE decoding, provenance, recovery, replay, visualization, and survey checks, it verifies Classic `RX_SYMBOLS` simulation, Basic Rate access-code/header decoding, known-LAP error tolerance, repeated UAP stabilization, WebAssembly/JavaScript parity on a known fixture, Classic replay reconstruction, Classic-only evidence-package behavior, and v1.8 runtime/package/service-worker asset synchronization.
 
-## Current v1.8.1 limitations / next work
+## Current v1.8.2 limitations / next work
 
 Batches 14–15 are complete in software. The prioritized roadmap now moves to **v1.9 Developer/Firmware Lab**: a deliberately separated engineering workspace for protocol/USB/firmware compatibility inspection and safe command exploration.
 

@@ -19,7 +19,7 @@ import { CaptureStore, SurveyStore } from './storage/db.js';
 import { exportEvidencePackage } from './capture/evidence-package.js';
 import { SpectrumModel } from './spectrum/spectrum.js';
 import { SpectrumCanvasView } from './ui/charts.js';
-import { renderShellNav, renderView, bleRows, bleMetrics, bleDevicePreviewContent, spectrumMetrics } from './ui/views.js';
+import { renderShellNav, renderView, bleRows, bleMetrics, bleDevicePreviewRows, spectrumMetrics } from './ui/views.js';
 import { toHexCompact } from './utils/binary.js';
 import { runHardwareValidation, newSoakState, browserHeapBytes } from './diagnostics/hardware.js';
 import { TelemetryHistory } from './analysis/telemetry.js';
@@ -1453,12 +1453,61 @@ class App {
       const liveState=this.state();
       const rows=document.querySelector('[data-live="ble-rows"]'); if(rows)rows.innerHTML=bleRows(liveState);
       const metrics=document.querySelector('[data-live="ble-metrics"]'); if(metrics)metrics.innerHTML=bleMetrics(liveState);
-      const preview=document.querySelector('[data-live="ble-device-preview"]'); if(preview)preview.innerHTML=bleDevicePreviewContent(liveState);
+      this.updateBleDevicePreview(liveState);
     }
     const now=performance.now();
     const activeAnalysis = this.streaming || (this.replay.active && this.replay.playing);
     const needsLifecycleRefresh = ['devices','overview'].includes(this.currentView) && !this.replay.active;
     if ((activeAnalysis || needsLifecycleRefresh) && now-this.lastFullRefresh>1000 && ['overview','survey','devices','channels','classic','timeline','packets','capture','diagnostics'].includes(this.currentView)) { this.lastFullRefresh=now; this.renderCurrentView(); }
+  }
+
+  updateBleDevicePreview(state) {
+    const count = document.querySelector('[data-live="ble-device-count"]');
+    const list = document.querySelector('[data-live="ble-device-list"]');
+    if (!list) return;
+
+    const models = bleDevicePreviewRows(state);
+    if (count) count.textContent = `${state.devices.length} TOTAL · STRONGEST FIRST`;
+
+    const devicesButton = document.querySelector('[data-live="ble-open-devices"]');
+    if (devicesButton) devicesButton.disabled = models.length === 0;
+    const packetsButton = document.querySelector('[data-live="ble-open-packets"]');
+    if (packetsButton) packetsButton.disabled = !state.recorder.packets.toArray().some(packet => packet.ble);
+
+    if (!models.length) {
+      for (const row of list.querySelectorAll('[data-device-address]')) row.remove();
+      if (!list.querySelector('.ble-device-empty')) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state compact ble-device-empty';
+        const title = document.createElement('strong');
+        title.textContent = 'NO ADVERTISERS YET';
+        const detail = document.createElement('span');
+        detail.textContent = 'Start BLE Scan. Observed devices will appear here first; raw packet evidence remains available below.';
+        empty.append(title, detail);
+        list.appendChild(empty);
+      }
+      return;
+    }
+
+    list.querySelector('.ble-device-empty')?.remove();
+    const existing = new Map(Array.from(list.querySelectorAll('[data-device-address]')).map(row => [row.dataset.deviceAddress, row]));
+    const wanted = new Set(models.map(model => model.address));
+    for (const [address, row] of existing) if (!wanted.has(address)) row.remove();
+
+    for (const model of models) {
+      let row = existing.get(model.address);
+      if (!row || !row.isConnected) {
+        row = document.createElement('button');
+        row.type = 'button';
+        row.dataset.deviceAddress = model.address;
+        row.innerHTML = '<div><strong data-role="device-name"></strong><span data-role="device-subtitle"></span></div><div class="device-signal"><b data-role="device-rssi"></b><span data-role="device-state"></span></div>';
+      }
+      row.querySelector('[data-role="device-name"]').textContent = model.name;
+      row.querySelector('[data-role="device-subtitle"]').textContent = model.subtitle;
+      row.querySelector('[data-role="device-rssi"]').textContent = `${model.rssi ?? '—'} dBm`;
+      row.querySelector('[data-role="device-state"]').textContent = model.state;
+      list.appendChild(row);
+    }
   }
 
   analysisTime() {

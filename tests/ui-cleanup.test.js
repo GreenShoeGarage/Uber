@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { renderView, navItems, renderShellNav } from '../src/ui/views.js';
+import { renderView, navItems, renderShellNav, bleDevicePreviewRows } from '../src/ui/views.js';
 import { CaptureRecorder } from '../src/capture/recorder.js';
 import { SpectrumModel } from '../src/spectrum/spectrum.js';
 
@@ -86,4 +86,42 @@ test('v1.8.1 Settings removes duplicate mode control and shell exposes persisten
   const app=fs.readFileSync(path.join(root,'src/app.js'),'utf8');
   assert.match(index,/data-action="toggle-nav"/);
   assert.match(app,/case 'toggle-nav'/);
+});
+
+
+test('v1.8.2 BLE live preview keeps navigation controls outside the mutable device list', () => {
+  const state=baseState('advanced');
+  const now=Date.now();
+  state.devices=[{
+    address:'AA:BB:CC:DD:EE:FF', addressType:'Random/private possible', localName:null,
+    firstSeen:now-2000, lastSeen:now, packetCount:4, rssi:-52, strongestRssi:-48,
+    channels:new Set([37]), serviceUuids:new Set(), manufacturerData:null
+  }];
+  const html=renderView('ble',state);
+  assert.match(html,/data-live="ble-device-list"/);
+  assert.match(html,/data-live="ble-open-devices"/);
+  assert.match(html,/data-live="ble-open-packets"/);
+  assert.match(html,/data-role="device-rssi"/);
+  const listEnd=html.indexOf('</div>\n    <div class="panel-footer-actions">', html.indexOf('data-live="ble-device-list"'));
+  const inventory=html.indexOf('data-live="ble-open-devices"');
+  assert.ok(listEnd > -1 && inventory > listEnd, 'inventory action must remain outside the live-updated device-list region');
+
+  const root=path.resolve(new URL('..',import.meta.url).pathname);
+  const app=fs.readFileSync(path.join(root,'src/app.js'),'utf8');
+  assert.match(app,/this\.updateBleDevicePreview\(liveState\)/);
+  assert.doesNotMatch(app,/ble-device-preview[^\n]*innerHTML/);
+  assert.match(app,/existing = new Map/);
+});
+
+test('v1.8.2 BLE preview model remains strongest-first while DOM nodes can be patched in place', () => {
+  const state=baseState('advanced');
+  const now=Date.now();
+  state.devices=[
+    {address:'11:11:11:11:11:11',firstSeen:now-1000,lastSeen:now,packetCount:2,rssi:-80},
+    {address:'22:22:22:22:22:22',firstSeen:now-1000,lastSeen:now,packetCount:2,rssi:-40}
+  ];
+  const rows=bleDevicePreviewRows(state);
+  assert.equal(rows[0].address,'22:22:22:22:22:22');
+  assert.equal(rows[0].rssi,-40);
+  assert.equal(rows[1].address,'11:11:11:11:11:11');
 });
